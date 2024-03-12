@@ -12,8 +12,8 @@ const firebaseConfig = {
   projectId: "eecs497roommatewebsite",
   storageBucket: "eecs497roommatewebsite.appspot.com",
   messagingSenderId: "301182678531",
-  appId: "1:301182678531:web:cae4baca6eb25cc8a34036",
-  measurementId: "G-H7MRGE7J12"
+  appId: "1:301182678531:web:c6868c06aa509757a34036",
+  measurementId: "G-JZ5M7J4CPC"
 };
 
 // Initialize Firebase
