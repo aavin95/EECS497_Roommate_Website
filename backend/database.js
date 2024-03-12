@@ -50,6 +50,36 @@ firebase.initializeApp({
       console.error('Error adding user: ', error);
     });
   }
+
+  // Assuming `currentUser` is the user object for whom you're finding matches
+  function findMatches(currentUser, allUsers, weights) {
+    const matches = allUsers.filter(user => currentUser.city === user.city) // Filter users by city first
+                            .map(user => {
+        let score = 0;
+
+        // Compare each parameter and add to the score based on weighting
+        // Since city is a must-match, it's not included in the score calculation anymore
+        score += Math.abs(currentUser.age - user.age) * weights.age;
+        score += Math.abs(currentUser.salary - user.salary) * weights.salary;
+        score += (currentUser.livingStyle === user.livingStyle) ? 0 : weights.livingStyle;
+        score += Math.abs(currentUser.budget - user.budget) * weights.budget;
+
+        // Add more comparisons for other parameters as needed
+
+        return { user, score };
+    });
+
+    // Sort by score to find the best matches
+    matches.sort((a, b) => a.score - b.score);
+
+    return matches;
+}
+
+// Example usage
+const weights = { age: 10, salary: 10, livingStyle: 10, budget: 10 };
+const matches = findMatches(currentUser, allUsers, weights);
+
+
   
   // Add event listener to the signup form
   document.getElementById('signup-form').addEventListener('submit', handleFormSubmit);
