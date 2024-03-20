@@ -1,86 +1,104 @@
 // Initialize Firebase
 firebase.initializeApp({
-    apiKey: "AIzaSyCKbXfVJNoj_D2UCWLmymTYa-KdTL-0-n0",
-    authDomain: "eecs497roommatewebsite.firebaseapp.com",
-    projectId: "eecs497roommatewebsite",
-    storageBucket: "eecs497roommatewebsite.appspot.com",
-    messagingSenderId: "301182678531",
-    appId: "1:301182678531:web:c6868c06aa509757a34036",
-    measurementId: "G-JZ5M7J4CPC"
+  apiKey: "AIzaSyCKbXfVJNoj_D2UCWLmymTYa-KdTL-0-n0",
+  authDomain: "eecs497roommatewebsite.firebaseapp.com",
+  projectId: "eecs497roommatewebsite",
+  storageBucket: "eecs497roommatewebsite.appspot.com",
+  messagingSenderId: "301182678531",
+  appId: "1:301182678531:web:c6868c06aa509757a34036",
+  measurementId: "G-JZ5M7J4CPC"
+});
+
+// Initialize Firestore
+const db = firebase.firestore();
+
+
+
+// Function to handle form submission
+function handleFormSubmit(event) {
+  // Prevent the default form submission behavior
+  event.preventDefault();
+  // Get values from the form inputs
+  const email = document.getElementById('email').value;
+  const name = document.getElementById('name').value;
+  const age = document.getElementById('age').value;
+  const bio = document.getElementById('bio').value;
+  const salary = document.getElementById('salary').value;
+  const desiredLocation = document.getElementById('desiredLocation').value;
+  const desiredRoommates = document.getElementById('desiredRoomates').value;
+  const desiredNeighborhood = document.getElementById('desiredNeighborhood').value;
+  const amenities = [];
+  const amenityCheckboxes = document.querySelectorAll('input[name="amenities"]:checked');
+  amenityCheckboxes.forEach(checkbox => {
+  amenities.push(checkbox.value);
   });
-  
-  // Initialize Firestore
-  const db = firebase.firestore();
-  
-  // Function to handle form submission
-  function handleFormSubmit(event) {
-    // Prevent the default form submission behavior
-    event.preventDefault();
-  
-    // Get values from the form inputs
-    const email = document.getElementById('email').value;
-    const name = document.getElementById('name').value;
-    const bio = document.getElementById('bio').value;
-    const age = document.getElementById('age').value;
-    const salary = document.getElementById('salary').value;
-    const city = document.getElementById('city').value;
-    const livingStyle = document.getElementById('living-style').value;
-    const budget = document.getElementById('budget').value;
-    const amenities = Array.from(document.querySelectorAll('input[name="amenities"]:checked')).map(el => el.value);
-  
-    // Set the document ID to the user's email
-    db.collection('users').doc(email).set({
-      name,
-      bio,
-      age: parseInt(age, 10), // Ensure age is stored as a number
-      salary: parseFloat(salary), // Ensure salary is stored as a number
-      city,
-      livingStyle,
-      budget: parseFloat(budget), // Ensure budget is stored as a number
-      amenities
-      // Add other fields as needed
-    })
-    .then(() => {
-      console.log(`User added with email: ${email}`);
-      // Optional: Clear the form or redirect the user
-      document.getElementById('signup-form').reset();
-      // window.location.href = 'welcome-page.html'; // Redirect to another page
-    })
-    .catch((error) => {
-      console.error('Error adding user: ', error);
-    });
-  }
 
-  // Assuming `currentUser` is the user object for whom you're finding matches
-  function findMatches(currentUser, allUsers, weights) {
-    const matches = allUsers.filter(user => currentUser.city === user.city) // Filter users by city first
-                            .map(user => {
-        let score = 0;
-
-        // Compare each parameter and add to the score based on weighting
-        // Since city is a must-match, it's not included in the score calculation anymore
-        score += Math.abs(currentUser.age - user.age) * weights.age;
-        score += Math.abs(currentUser.salary - user.salary) * weights.salary;
-        score += (currentUser.livingStyle === user.livingStyle) ? 0 : weights.livingStyle;
-        score += Math.abs(currentUser.budget - user.budget) * weights.budget;
-
-        // Add more comparisons for other parameters as needed
-
-        return { user, score };
-    });
-
-    // Sort by score to find the best matches
-    matches.sort((a, b) => a.score - b.score);
-
-    return matches;
+  // Set the document ID to the user's email
+  db.collection('users').doc(email).set({
+    name,
+    age: parseInt(age, 10), // Ensure age is stored as a number
+    bio,
+    salary: parseFloat(salary), // Ensure salary is stored as a number
+    desiredLocation,
+    livingStyle,
+    budget: parseFloat(budget), // Ensure budget is stored as a number
+    amenities: amenities, // Include the amenities variable
+    // Add other fields as needed
+  })
+  .then(() => {
+    console.log(`User added with email: ${email}`);
+    // Optional: Clear the form or redirect the user
+    document.getElementById('signup-form').reset();
+    // window.location.href = 'welcome-page.html'; // Redirect to another page
+  })
+  .catch((error) => {
+    console.error('Error adding user: ', error);
+  });
 }
 
-// Example usage
-const weights = { age: 10, salary: 10, livingStyle: 10, budget: 10 };
-const matches = findMatches(currentUser, allUsers, weights);
 
+// Function to store a like in Firestore
+function recordLike(likerId, likedId) {
+  const like = {
+      liker: likerId,
+      liked: likedId,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  return db.collection('Likes').add(like);
+}
 
-  
-  // Add event listener to the signup form
-  document.getElementById('signup-form').addEventListener('submit', handleFormSubmit);
-  
+// Function to store a match in Firestore
+function storeMatch(user1Id, user2Id) {
+  return db.collection('Matches').add({
+      users: [user1Id, user2Id],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+// Function to store an entity or group in Firestore
+function storeEntity(members, groupName, groupPreferences) {
+  return db.collection('Entities').add({
+      members: members,
+      groupName: groupName,
+      groupPreferences: groupPreferences,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+// Cloud Function to check for a match when a new like is created
+exports.checkForMatch = functions.firestore.document('Likes/{likeId}').onCreate(async (snap, context) => {
+  const like = snap.data();
+  const likedId = like.liked;
+  const likerId = like.liker;
+
+  // Check if there's a mutual like
+  const potentialMatch = await db.collection('Likes')
+      .where('liker', '==', likedId)
+      .where('liked', '==', likerId)
+      .get();
+
+  if (!potentialMatch.empty) {
+      // Match found, create a new document in Matches collection
+      await storeMatch(likerId, likedId);
+  }
+});
